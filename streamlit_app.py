@@ -1,51 +1,32 @@
 import streamlit as st
 import requests
-import json
 
-def transcribe_audio(audio_file):
-    headers = {
-        'x-gladia-key': '16d52384-d97c-4557-809b-865c2ef2460c',
-    }
+st.title("Transcripción de Voz a Texto")
 
-    files = {
-        'audio': audio_file,
-    }
+# Archivo de audio a transcribir
+audio_file = st.file_uploader("Cargar archivo de audio", type=["mp3", "wav", "m4a"])
 
-    response = requests.post('https://api.gladia.io/audio/text/audio-transcription/', headers=headers, files=files)
-    return response.json()
+if audio_file is not None:
+    st.audio(audio_file, format='audio/wav')
 
-def generate_autobiography(text):
-    response = requests.post(
-      "https://api.respell.ai/v1/run",
-      headers={
-        "Authorization": "Bearer 260cee54-6d54-48ba-92e8-bf641b5f4805",
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-      },
-      data=json.dumps({
-        "spellId": "dN5cL9gF7TOXGpQHIxkeb",
-        "inputs": {
-          "input": text,
-        }
-      }),
-    )
-    return response.json()
-
-# Streamlit UI
-st.title("Transcripción de Voz y Generación de Autobiografía")
-
-# Subir archivo de audio
-audio_file = st.file_uploader("Sube tu archivo de audio", type=['mp3', 'wav', 'm4a'])
-
-if audio_file:
-    st.audio(audio_file, format='audio/mp3')
-
+    # Botón para iniciar la transcripción
     if st.button("Transcribir"):
-        transcribed_text = transcribe_audio(audio_file)
-        st.write("Texto Transcrito:")
-        st.write(transcribed_text)
+        # Configuración de la solicitud
+        headers = {
+            'x-gladia-key': '16d52384-d97c-4557-809b-865c2ef2460c',
+        }
 
-        if st.button("Generar Autobiografía"):
-            autobiography = generate_autobiography(transcribed_text)
-            st.write("Autobiografía Generada:")
-            st.write(autobiography)
+        files = {
+            'audio': audio_file.getvalue()
+        }
+
+        # Realizar la solicitud POST a la API
+        response = requests.post('https://api.gladia.io/audio/text/audio-transcription/', headers=headers, files=files)
+
+        # Verificar el estado de la respuesta
+        if response.status_code == 200:
+            transcripcion = response.json().get("text")
+            st.write("Transcripción:")
+            st.write(transcripcion)
+        else:
+            st.write("Error al procesar la transcripción. Inténtalo de nuevo.")
