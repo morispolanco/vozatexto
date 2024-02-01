@@ -1,48 +1,51 @@
 import streamlit as st
 import requests
 import json
-import speech_recognition as sr
 
-# Función para corregir texto utilizando la API
-def corregir_texto(texto):
-    # Tu código de integración con la API de corrección de texto
-    pass
+def transcribe_audio(audio_file):
+    headers = {
+        'x-gladia-key': '16d52384-d97c-4557-809b-865c2ef2460c',
+    }
 
-# Función para reconocimiento de voz
-def reconocer_voz():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("Habla ahora...")
-        audio = r.listen(source)
+    files = {
+        'audio': audio_file,
+    }
 
-    try:
-        texto = r.recognize_google(audio, language="es-ES")
-        st.write("Texto reconocido: ", texto)
-        return texto
-    except sr.UnknownValueError:
-        st.write("No se pudo entender el audio")
-        return ""
-    except sr.RequestError as e:
-        st.write("Error en la solicitud: ", e)
-        return ""
+    response = requests.post('https://api.gladia.io/audio/text/audio-transcription/', headers=headers, files=files)
+    return response.json()
 
-# Configuración de la aplicación Streamlit
-st.title("Corrección de Texto y Reconocimiento de Voz")
+def generate_autobiography(text):
+    response = requests.post(
+      "https://api.respell.ai/v1/run",
+      headers={
+        "Authorization": "Bearer 260cee54-6d54-48ba-92e8-bf641b5f4805",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      data=json.dumps({
+        "spellId": "dN5cL9gF7TOXGpQHIxkeb",
+        "inputs": {
+          "input": text,
+        }
+      }),
+    )
+    return response.json()
 
-# Opción para elegir entre entrada de texto o reconocimiento de voz
-opcion = st.radio("Elegir fuente de entrada:", ("Texto", "Voz"))
+# Streamlit UI
+st.title("Transcripción de Voz y Generación de Autobiografía")
 
-# Manejar la entrada de acuerdo a la opción seleccionada
-if opcion == "Texto":
-    texto_usuario = st.text_area("Ingresa el texto que quieres corregir")
-elif opcion == "Voz":
-    texto_usuario = reconocer_voz()
+# Subir archivo de audio
+audio_file = st.file_uploader("Sube tu archivo de audio", type=['mp3', 'wav', 'm4a'])
 
-# Botón para corregir el texto
-if st.button("Corregir"):
-    if texto_usuario:
-        texto_corregido = corregir_texto(texto_usuario)
-        st.subheader("Texto Corregido")
-        st.write(texto_corregido)
-    else:
-        st.warning("Por favor, ingresa texto para corregir o intenta de nuevo con reconocimiento de voz")
+if audio_file:
+    st.audio(audio_file, format='audio/mp3')
+
+    if st.button("Transcribir"):
+        transcribed_text = transcribe_audio(audio_file)
+        st.write("Texto Transcrito:")
+        st.write(transcribed_text)
+
+        if st.button("Generar Autobiografía"):
+            autobiography = generate_autobiography(transcribed_text)
+            st.write("Autobiografía Generada:")
+            st.write(autobiography)
