@@ -1,58 +1,48 @@
 import streamlit as st
 import requests
+import json
+import speech_recognition as sr
 
-def main():
-    st.title("Voice Transcription with API")
+# Función para corregir texto utilizando la API
+def corregir_texto(texto):
+    # Tu código de integración con la API de corrección de texto
+    pass
 
-    # File uploader
-    uploaded_file = st.file_uploader("Upload audio file", type=["mp3", "wav"])
+# Función para reconocimiento de voz
+def reconocer_voz():
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.write("Habla ahora...")
+        audio = r.listen(source)
 
-    if uploaded_file is not None:
-        # Transcribe audio
-        transcription = transcribe_audio(uploaded_file)
-        st.write("Transcription:")
-        st.write(transcription)
+    try:
+        texto = r.recognize_google(audio, language="es-ES")
+        st.write("Texto reconocido: ", texto)
+        return texto
+    except sr.UnknownValueError:
+        st.write("No se pudo entender el audio")
+        return ""
+    except sr.RequestError as e:
+        st.write("Error en la solicitud: ", e)
+        return ""
 
-def transcribe_audio(uploaded_file):
-    url = "https://api.rev.ai/revspeech/v1beta/jobs"
-    headers = {
-        "Authorization": "Bearer 0ee2bb2a-c71d-426a-b96f-3c536d19d900"
-    }
+# Configuración de la aplicación Streamlit
+st.title("Corrección de Texto y Reconocimiento de Voz")
 
-    files = {
-        "media": uploaded_file
-    }
+# Opción para elegir entre entrada de texto o reconocimiento de voz
+opcion = st.radio("Elegir fuente de entrada:", ("Texto", "Voz"))
 
-    response = requests.post(url, headers=headers, files=files)
+# Manejar la entrada de acuerdo a la opción seleccionada
+if opcion == "Texto":
+    texto_usuario = st.text_area("Ingresa el texto que quieres corregir")
+elif opcion == "Voz":
+    texto_usuario = reconocer_voz()
 
-    if response.status_code == 200:
-        job_id = response.json()["id"]
-        transcription = get_transcription(job_id)
-        return transcription
+# Botón para corregir el texto
+if st.button("Corregir"):
+    if texto_usuario:
+        texto_corregido = corregir_texto(texto_usuario)
+        st.subheader("Texto Corregido")
+        st.write(texto_corregido)
     else:
-        st.error("Error transcribing audio. Please try again.")
-        return None
-
-def get_transcription(job_id):
-    url = f"https://api.rev.ai/revspeech/v1beta/jobs/{job_id}/transcript"
-    headers = {
-        "Authorization": "Bearer 0ee2bb2a-c71d-426a-b96f-3c536d19d900"
-    }
-
-    response = requests.get(url, headers=headers)
-
-    if response.status_code == 200:
-        transcript_json = response.json()
-        transcript_text = ""
-        for i in range(len(transcript_json["monologues"])):
-            for j in range(len(transcript_json["monologues"][i]["elements"])):
-                transcript_text += transcript_json["monologues"][i]["elements"][j]["value"]
-                if transcript_json["monologues"][i]["elements"][j]["type"] == "punct":
-                    transcript_text += " "
-        return transcript_text
-    else:
-        st.error("Error getting transcription. Please try again.")
-        return None
-
-if __name__ == "__main__":
-    main()
+        st.warning("Por favor, ingresa texto para corregir o intenta de nuevo con reconocimiento de voz")
